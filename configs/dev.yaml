@@ -1,0 +1,23 @@
+app:
+  name: ${APP_NAME}
+  env: ${APP_ENV}
+  version: ${APP_VERSION}
+  read-timeout: 10
+  write_timeout: 10
+  connect_timeout: 10
+
+http:
+  host: ${HTTP_HOST}
+  poet: ${HTTP_PORT}
+
+logging:
+  level: ${LOGGING_LEVEL}
+  format: ${LOGGING_FORMAT}
+
+routes:
+  - name: newsservice
+    base_url: http://localhost:6000
+  - name: comments
+    base_url: http://localhost:7000
+  - name: censor
+    base_url: http://localhost:5000
