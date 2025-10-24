@@ -1,0 +1,23 @@
+app:
+  name: ${APP_NAME}
+  env: ${APP_ENV}
+  version: ${APP_VERSION}
+  read-timeout: 10
+  write-timeout: 10
+  connect-timeout: 10
+
+http:
+  host: ${HTTP_HOST}
+  port: ${HTTP_PORT}
+
+logging:
+ level: ${LOGGING_LEVEL}
+ format: ${LOGGING_FORMAT}
+
+routes:
+  - name: newsservice
+    base_url:
+  - name: comments
+    base_url:
+  - name: censor
+    base_url:
