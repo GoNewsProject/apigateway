@@ -2,9 +2,11 @@ package app
 
 import (
 	"apigateway/internal/api"
+	conf "apigateway/internal/infrastructure/config"
 	"apigateway/internal/models"
 	transport "apigateway/internal/transport/http"
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -13,17 +15,17 @@ import (
 	"time"
 
 	kfk "github.com/Fau1con/kafkawrapper"
-	"github.com/joho/godotenv"
 )
 
 // Run запускает API Gateway приложение
-func Run() error {
+func Run(configPath string) error {
 	ctxMain, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := godotenv.Load()
+	cfg, err := conf.LoadConfig(configPath)
 	if err != nil {
-		log.Println("failed to load .env file", err)
+		log.Printf("Failed to load config from config file: %w", err)
+		return fmt.Errorf("failed to load config from config file: %w", err)
 	}
 
 	port := os.Getenv("PORT")
@@ -78,6 +80,11 @@ func Run() error {
 		Level: slog.LevelDebug,
 	}))
 
+	topics := api.Topics{
+		NewsInput:     cfg.Kafka.Topics.NewsInput,
+		CommentsInput: cfg.Kafka.Topics.CommentsInput,
+		AddComments:   cfg.Kafka.Topics.AddComments,
+	}
 	// Создание API и настройка middleware
 	apiInstance := api.New(
 		ctxMain,
@@ -90,10 +97,13 @@ func Run() error {
 		filterPublishedConsumer,
 		commentsConsumer,
 		log,
+		topics,
+		cfg.App.DefaultNewsLimit,
 	)
 
 	var handler http.Handler = apiInstance.Router()
 	handler = transport.RequestIDMiddleware(handler)
+	handler = transport.CORSMiddleware()(handler)
 	handler = transport.LoggingMiddleware(log)(handler)
 
 	log.Info(
