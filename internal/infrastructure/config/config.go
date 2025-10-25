@@ -2,22 +2,27 @@ package infrastructure
 
 import (
 	"fmt"
-	"net/url"
+	"log"
 	"os"
 	"time"
 
-	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
 // AppConfig - конфигурация приложения.
 type AppConfig struct {
-	Name           string `yaml:"name"`
-	Env            string `yaml:"env"`
-	Version        string `yaml:"version"`
-	ReadTimeout    int    `yaml:"read_timeout"`
-	WriteTimeout   int    `yaml:"write_timeout"`
-	ConnectTimeout int    `yaml:"connect_timeout"`
+	Name               string    `yaml:"name"`
+	ReadTimeout        int       `yaml:"read_timeout"`
+	WriteTimeout       int       `yaml:"write_timeout"`
+	ConnectTimeout     int       `yaml:"connect_timeout"`
+	DefaultNewsLimit   int       `yaml:"default_news_limit"`
+	ProcessingInterval int       `yaml:"processingInterval"`
+	FeedURLs           []FeedURL `yaml:"feed_urls"`
+}
+
+type FeedURL struct {
+	Name string `yaml:"name"`
+	URL  string `yaml:"url"`
 }
 
 // HTTPConfig - конфигурация HTTP сервера.
@@ -38,24 +43,45 @@ type Route struct {
 	BaseURL string `yaml:"base_url"`
 }
 
+type KafkaConfig struct {
+	Brokers        []string          `yaml:"brokers"`
+	Topics         KafkaTopics       `yaml:"topics"`
+	ConsumerGroups map[string]string `yaml:"consumer_groups"`
+}
+type KafkaTopics struct {
+	// Producers
+	NewsInput     string `yaml:"news_input"`
+	CommentsInput string `yaml:"comments_input"`
+	AddComments   string `yaml:"add_comments"`
+
+	// Consumers
+	NewsDetail      string `yaml:"news_detail"`
+	NewsList        string `yaml:"news_list"`
+	FilteredContent string `yaml:"filtered_content"`
+	FilterPublished string `yaml:"filter_published"`
+	Comments        string `yaml:"comments"`
+}
+
+type DBConfig struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	DBname   string `yaml:"db_name"`
+	SSLMode  string `yaml:"sslmode"`
+}
+
 // Config основная конфигурация.
 type Config struct {
 	App     AppConfig     `yaml:"app"`
 	HTTP    HTTPConfig    `yaml:"http"`
 	Logging LoggingConfig `yaml:"logging"`
+	Kafka   KafkaConfig   `yaml:"kafka"`
 	Routes  []Route       `yaml:"routes"`
-}
-
-func (c *Config) IsDevelopment() bool {
-	return c.App.Env == "dev"
 }
 
 func (c *Config) GetAppName() string {
 	return c.App.Name
-}
-
-func (c *Config) GetVersion() string {
-	return c.App.Version
 }
 
 func (c *Config) GetHost() string {
@@ -76,19 +102,16 @@ func (c *Config) GetWriteTimeout() time.Duration {
 
 // LoadConfig загружает конфиг из файла.
 func LoadConfig(configPath string) (*Config, error) {
-	appEnv := os.Getenv("APP_ENV")
-
-	if appEnv != "prod" && appEnv != "production" {
-		if err := godotenv.Load(); err != nil {
-			if err = godotenv.Load("./apigateway/.env"); err != nil {
-				return nil, fmt.Errorf("failed to load .env file: %w", err)
-			}
-		}
+	if configPath == "" {
+		log.Println("Config path is empty")
+		return nil, fmt.Errorf("config path is empty")
 	}
 	raw, err := os.ReadFile(configPath)
 	if err != nil {
+		log.Println("Failed to read config file")
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
+
 	expanded := os.ExpandEnv(string(raw))
 
 	var cfg Config
@@ -96,28 +119,5 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config yaml: %w", err)
 	}
 
-	cfg.overrideRoutesForDev()
-
 	return &cfg, nil
-}
-
-// overrideRoutesForDev переписывает пути для локальной разработки.
-func (c *Config) overrideRoutesForDev() {
-	if c.App.Env != "dev" {
-		return
-	}
-
-	for i, route := range c.Routes {
-		u, err := url.Parse(route.BaseURL)
-		if err != nil {
-			continue
-		}
-
-		port := u.Port()
-		if port == "" {
-			port = "80"
-		}
-
-		c.Routes[i].BaseURL = fmt.Sprintf("http://localhost:%s", port)
-	}
 }

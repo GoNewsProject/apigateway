@@ -288,7 +288,7 @@ func HandleCommentsByNews(ctx context.Context, c *kfk.Consumer, p *kfk.Producer)
 // HandleAddComment Враппер для хендлера
 func HandleAddComment(ctx context.Context, c *kfk.Consumer, p *kfk.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !httputils.ValidateMethod(w, r, http.MethodGet, http.MethodOptions) {
+		if !httputils.ValidateMethod(w, r, http.MethodPost, http.MethodOptions) {
 			return
 		}
 		comment := r.URL.Query().Get("comment")
