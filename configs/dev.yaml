@@ -1,18 +1,56 @@
 app:
-  name: ${APP_NAME}
-  env: ${APP_ENV}
-  version: ${APP_VERSION}
-  read-timeout: 10
+  name: apigateway
+  read_timeout: 10
   write_timeout: 10
   connect_timeout: 10
+  default_news_limit: 10
+  processing_interval: "3m"
+  feed_urls:
+    - name: dev.to
+      url: https://dev.to/feed
+    - name: bbci.com
+      url: http://feeds.bbci.co.uk/news/rss.xml
+    - name: nytimes.com
+      url: https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+    - name: ria.ru
+      url: https://ria.ru/export/rss2/index.xml
 
 http:
-  host: ${HTTP_HOST}
-  poet: ${HTTP_PORT}
+  host: 0.0.0.0
+  port: 8080
 
 logging:
-  level: ${LOGGING_LEVEL}
-  format: ${LOGGING_FORMAT}
+  level: debug
+  format: text
+
+database:
+  # Пример конфигурации БД (не используется API Gateway напрямую, но хранится централизованно)
+  host: localhost
+  port: 5432
+  username: news
+  password: password
+  dbname: news_db
+  sslmode: disable
+
+kafka:
+  brokers:
+    - localhost:9092
+  topics:
+    news_input: news_input
+    news_list: newslist
+    news_detail: newsdetail
+    filtered_content: filtered_content
+    filter_published: filter_published
+    comments_input: comments_input
+    add_comments: add_comments
+    comments: comments
+  consumer_groups:
+    gnews: gnews
+    api_gateway: api-gateway
+    comments: comments
+
+server:
+  address: ":8080"
 
 routes:
   - name: newsservice
@@ -21,3 +59,4 @@ routes:
     base_url: http://localhost:7000
   - name: censor
     base_url: http://localhost:5000
+

@@ -20,15 +20,23 @@ type Api struct {
 	filteredContent  *kfk.Consumer
 	filterPublished  *kfk.Consumer
 	responseChan     chan models.DetailedResponse
+	defaultLimit     int
 	ctx              context.Context
 	log              *slog.Logger
+	topics           Topics
+}
+
+type Topics struct {
+	NewsInput     string
+	CommentsInput string
+	AddComments   string
 }
 
 func New(
 	ctx context.Context, resp chan models.DetailedResponse,
 	newsProducer, commentProducer *kfk.Producer,
 	detailConsumer, listConsumer, commentsConsumer, filteredContent, filterPublished *kfk.Consumer,
-	log *slog.Logger,
+	log *slog.Logger, topics Topics, limit int,
 ) *Api {
 	api := &Api{
 		mux:              http.NewServeMux(),
@@ -42,6 +50,8 @@ func New(
 		responseChan:     resp,
 		ctx:              ctx,
 		log:              log,
+		topics:           topics,
+		defaultLimit:     limit,
 	}
 	api.registerRoutes()
 	return api
