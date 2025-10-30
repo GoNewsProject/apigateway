@@ -55,8 +55,8 @@ server:
 routes:
   - name: newsservice
     base_url: http://localhost:6000
-  - name: comments
+  - name: commentservice
     base_url: http://localhost:7000
-  - name: censor
+  - name: censorservice
     base_url: http://localhost:5000
 
