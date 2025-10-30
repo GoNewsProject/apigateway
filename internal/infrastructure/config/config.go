@@ -67,7 +67,7 @@ type DBConfig struct {
 	Port     string `yaml:"port"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
-	DBname   string `yaml:"db_name"`
+	DBName   string `yaml:"db_name"`
 	SSLMode  string `yaml:"sslmode"`
 }
 

@@ -24,7 +24,7 @@ func Run(configPath string) error {
 
 	cfg, err := conf.LoadConfig(configPath)
 	if err != nil {
-		log.Printf("Failed to load config from config file: %w", err)
+		log.Printf("Failed to load config from config file")
 		return fmt.Errorf("failed to load config from config file: %w", err)
 	}
 
