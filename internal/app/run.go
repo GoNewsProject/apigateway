@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	kfk "github.com/Fau1con/kafkawrapper"
@@ -28,49 +29,52 @@ func Run(configPath string) error {
 		return fmt.Errorf("failed to load config from config file: %w", err)
 	}
 
-	port := os.Getenv("PORT")
-	addr := "localhost:" + port
+	addr := ":" + strconv.Itoa(cfg.GetPort())
 
 	responseChan := make(chan models.DetailedResponse, 2)
 
 	// Инициализация Kafka клиентов
-	newsProducer, err := kfk.NewProducer([]string{"localhost:9093"})
+	brokers := cfg.Kafka.Brokers
+	if len(brokers) == 0 {
+		brokers = []string{"kafka:9093"}
+	}
+	newsProducer, err := kfk.NewProducer(brokers)
 	if err != nil {
 		log.Printf("failed to create news producer: %v\n", err)
 		return err
 	}
 
-	commentsProducer, err := kfk.NewProducer([]string{"localhost:9093"})
+	commentsProducer, err := kfk.NewProducer(brokers)
 	if err != nil {
 		log.Printf("failed to create comment producer: %v\n", err)
 		return err
 	}
 
-	detailConsumer, err := kfk.NewConsumer([]string{"localhost:9093"}, "newsdetail")
+	detailConsumer, err := kfk.NewConsumer(brokers, cfg.Kafka.Topics.NewsDetail)
 	if err != nil {
 		log.Printf("failet to create detail consumer: %v\n", err)
 		return err
 	}
 
-	listConsumer, err := kfk.NewConsumer([]string{"localhost:9093"}, "newslist")
+	listConsumer, err := kfk.NewConsumer(brokers, cfg.Kafka.Topics.NewsList)
 	if err != nil {
 		log.Printf("failed to create list consumer: %v\n", err)
 		return err
 	}
 
-	filterContentConsumer, err := kfk.NewConsumer([]string{"localhost:9093"}, "filtered_content")
+	filterContentConsumer, err := kfk.NewConsumer(brokers, cfg.Kafka.Topics.FilteredContent)
 	if err != nil {
 		log.Printf("failed to create filter content consumer: %v\n", err)
 		return err
 	}
 
-	filterPublishedConsumer, err := kfk.NewConsumer([]string{"localhost:9093"}, "filter_published")
+	filterPublishedConsumer, err := kfk.NewConsumer(brokers, cfg.Kafka.Topics.FilterPublished)
 	if err != nil {
 		log.Printf("failed to create filter published consumer: %v\n", err)
 		return err
 	}
 
-	commentsConsumer, err := kfk.NewConsumer([]string{"localhost:9093"}, "comments")
+	commentsConsumer, err := kfk.NewConsumer(brokers, cfg.Kafka.Topics.Comments)
 	if err != nil {
 		log.Printf("failed to create comment consumer: %v\n", err)
 		return err

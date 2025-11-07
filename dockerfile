@@ -1,4 +1,4 @@
-FROM golang:1.22.3-alpine AS builder
+FROM golang:1.24.3-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd
 
 FROM alpine:latest
 
@@ -18,9 +18,10 @@ WORKDIR /root/
 COPY --from=builder /app/main .
 
 COPY --from=builder /app/.env* ./
+COPY --from=builder /app/configs ./configs
 
 # Скопировать статичный фронтенд
 
-EXPOSE 5000
+EXPOSE 8080
 
 CMD ["./main"] 

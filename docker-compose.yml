@@ -1,0 +1,127 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: evar-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - evar-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: evar-kafka
+    ports:
+      - "9093:9093"
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - evar-network
+
+  postgres-news:
+    image: postgres:15-alpine
+    container_name: evar-postgres-news
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=newsservice
+      - POSTGRES_USER=news
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_news_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news -d newsservice -h localhost -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - evar-network
+
+  postgres-comments:
+    image: postgres:15-alpine
+    container_name: evar-postgres-comments
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=commentservice
+      - POSTGRES_USER=news
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_comments_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news -d commentservice -h localhost -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - evar-network
+
+  apigateway:
+    build:
+      context: ./apigateway
+      dockerfile: dockerfile
+    container_name: evar-apigateway
+    ports:
+      - "8080:8080"
+    environment: []
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - evar-network
+
+  newsservice:
+    build:
+      context: ./newsservice
+      dockerfile: dockerfile
+    container_name: evar-newsservice
+    ports:
+      - "6000:6000"
+    environment: []
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres-news:
+        condition: service_healthy
+    networks:
+      - evar-network
+
+  commentservice:
+    build:
+      context: ./commentservice
+      dockerfile: dockerfile
+    container_name: evar-commentservice
+    ports:
+      - "8081:8081"
+    environment: []
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres-news:
+        condition: service_healthy
+      postgres-comments:
+        condition: service_healthy
+    networks:
+      - evar-network
+
+volumes:
+  postgres_news_data:
+    driver: local
+  postgres_comments_data:
+    driver: local
+
+networks:
+  evar-network:
+    driver: bridge
+
+
