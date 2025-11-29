@@ -291,6 +291,10 @@ func HandleAddComment(ctx context.Context, c *kfk.Consumer, p *kfk.Producer) htt
 		if !httputils.ValidateMethod(w, r, http.MethodPost, http.MethodOptions) {
 			return
 		}
+		newsID := r.URL.Query().Get("news_id")
+		if newsID == "" {
+			httputils.RenderError(w, "Invalid comment parameter", http.StatusBadRequest)
+		}
 		comment := r.URL.Query().Get("comment")
 		if comment == "" {
 			httputils.RenderError(w, "Invalid comment parameter", http.StatusBadRequest)
@@ -298,7 +302,10 @@ func HandleAddComment(ctx context.Context, c *kfk.Consumer, p *kfk.Producer) htt
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
 
-		err := p.SendMessage(ctx, "comment_input", []byte("/add_comments/?comment="+comment))
+		url := fmt.Sprintf("/add_comments/?comment=%s&newsid=%s", comment, newsID)
+		data := []byte(url)
+
+		err := p.SendMessage(ctx, "comment_input", []byte(data))
 		if err != nil {
 			httputils.RenderError(w, "Failed to write message in Kafka", http.StatusInternalServerError)
 		}

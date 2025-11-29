@@ -34,7 +34,7 @@ database:
 
 kafka:
   brokers:
-    - localhost:9092
+    - kafka:9093
   topics:
     news_input: news_input
     news_list: newslist
@@ -54,9 +54,9 @@ server:
 
 routes:
   - name: newsservice
-    base_url: http://localhost:6000
-  - name: comments
-    base_url: http://localhost:7000
-  - name: censor
+    base_url: http://newsservice:6000
+  - name: commentservice
+    base_url: http://commentservice:8081
+  - name: censorservice
     base_url: http://localhost:5000
 
